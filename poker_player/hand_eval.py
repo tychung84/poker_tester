@@ -42,13 +42,13 @@ class Evaluator(object):
 		elif len(trips) == 2:
 			return trips[-1] + trips[-2][:2]
 		else:
-			return trips[-1], pairs[-1]
+			return trips[-1] + pairs[-1]
 
 	def return_straights(self, cards):
-		card_values = self._count_values(cards).keys()
-		unique_card_values = sorted(list(set(card_values)), key=lambda x: self._value_ranking[x])
+		card_values = self._count_values(cards)
+		unique_card_values = ''.join(sorted(list(set(card_values)), key=lambda x: self._value_ranking[x]))
 		straight_possibilities = 'A' + self._card_values
-		straights = [straight_possibilities[x: x+5] for x in range(len(straight_possibilities) - 4) if straight_possibilities[x: x+5] in card_values]
+		straights = [straight_possibilities[x: x+5] for x in range(len(straight_possibilities) - 4) if straight_possibilities[x: x+5] in unique_card_values]
 
 		if straights == list():
 			return list()
@@ -75,7 +75,7 @@ class Evaluator(object):
 		if len(straightflush) > 0:
 			return straightflush, self._hand_values.STRAIGHT_FLUSH
 		elif len(quads) > 0:
-			return quads + self.return_highcard(list(set(cards) - set(quads[-1])), 1), self._hand_values.QUADS
+			return quads[-1] + self.return_highcard(list(set(cards) - set(quads[-1])), 1), self._hand_values.QUADS
 		elif len(fullhouse) > 0:
 			return fullhouse, self._hand_values.FULL_HOUSE
 		elif len(flushes) > 0:
