@@ -75,7 +75,7 @@ class Evaluator(object):
 		if len(straightflush) > 0:
 			return straightflush, self._hand_values.STRAIGHT_FLUSH
 		elif len(quads) > 0:
-			return quads + self.return_highcard(list(set(cards) - set(quads)), 1), self._hand_values.QUADS
+			return quads + self.return_highcard(list(set(cards) - set(quads[-1])), 1), self._hand_values.QUADS
 		elif len(fullhouse) > 0:
 			return fullhouse, self._hand_values.FULL_HOUSE
 		elif len(flushes) > 0:
