@@ -98,3 +98,6 @@ class Evaluator(object):
 	def _count_suits(self, cards):
 		return {suit: list(x for x in cards if x.suit == suit) for suit in set(x.suit for x in cards)}
 
+class PlayerEvaluator(Evaluator):
+	def __init__(self):
+		super(PlayerEvaluator, self).__init__()

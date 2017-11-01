@@ -1,5 +1,6 @@
 import random
 from error import BetTooSmallError, BetTooLargeError
+from hand_eval import PlayerEvaluator
 
 class Card(object):
 	
@@ -53,35 +54,62 @@ class Cards(object):
 class Players(object):
 
 	''' deals with the player holdings and results
+		all results are returned as (betting amount, is_all_in)
 	'''
 
 	def __init__(self, holdings):
-		self.cards = list()
+		self.cards = None
 		self.holdings = holdings
 		self.alive = True
 		self.in_hand = True
 
 	def deal_cards(self, cards):
-		self.cards = cards
+		self.cards = list(cards)
 
-	def bet(self, amount, bet_increase):
-		if (amount > 0) & (amount < bet_increase) & (self.holdings >= bet_increase):
+	def bet(self, amount, min_bet):
+		if (amount > 0) & (amount < min_bet) :
 			raise BetTooSmallError
 		elif amount > self.holdings:
 			raise BetTooLargeError
 		else:
 			self.holdings -= amount
+			return amount, self.holdings == 0
+
+	def ante(self, amount):
+		ante_amount = min(self.holdings, amount)
+		self.holdings -= ante_amount
+		return ante_amount, self.holdings == 0
 
 	def fold(self):
 		self.in_hand = False
+		return -1, False
 
 	def reset(self, earnings):
 		self.holdings += earnings
 		if self.holdings == 0:
 			self.alive = False
 		else:
-			self.cards = list()
+			self.cards = None
 			self.in_hand = True
+
+class AutomatedPlayers(Players):
+	'''
+	algo driven players
+	'''
+	def __init__(self, holdings):
+		super(AutomatedPlayers, self).__init__(holdings)
+		self.probs = 0.5
+		self.evaluator = PlayerEvaluator()
+
+	def best_action(self, pot, min_bet):
+		if random.random() > self.probs:
+			self.bet(min_bet, min_bet)
+		else:
+			self.fold()
+
+
+
+
 
 
 
