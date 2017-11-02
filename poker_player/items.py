@@ -66,14 +66,20 @@ class Players(object):
 	def deal_cards(self, cards):
 		self.cards = list(cards)
 
-	def bet(self, amount, min_bet):
-		if (amount > 0) & (amount < min_bet) :
-			raise BetTooSmallError
-		elif amount > self.holdings:
-			raise BetTooLargeError
-		else:
+	def bet(self, amount, min_bet, min_raise, max_raise):
+		if amount == self.holdings:
 			self.holdings -= amount
 			return amount, self.holdings == 0
+		elif amount > min(max_raise, self.holdings):
+			raise BetTooLargeError
+		else:
+			if (amount > 0) & (amount < min_bet) :
+				raise BetTooSmallError
+			elif (amount > min_bet) & (amount < min_raise):
+				raise BetTooSmallError
+			else:
+				self.holdings -= amount
+				return amount, self.holdings == 0
 
 	def ante(self, amount):
 		ante_amount = min(self.holdings, amount)
@@ -101,9 +107,9 @@ class AutomatedPlayers(Players):
 		self.probs = 0.5
 		self.evaluator = PlayerEvaluator()
 
-	def best_action(self, pot, min_bet):
+	def best_action(self, pot, community_cards, min_bet, min_raise, max_raise):
 		if random.random() > self.probs:
-			self.bet(min_bet, min_bet)
+			self.bet(min_bet, min_bet, min_raise, max_raise)
 		else:
 			self.fold()
 
