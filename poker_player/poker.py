@@ -107,8 +107,8 @@ class GameState(object):
 
 	def post_betting(self):
 		# getting hands and ranking them
-		still_in = list(self.current_players[player] for player in range(len(self.current_players)) if self.players[self.current_players[player]].in_hand)
-		card_results = list(self.evaluator.best_hand(self.community_cards + self.players[self.current_players[player]].cards) for player in still_in)
+		still_in = list(player for player in range(len(self.current_players)) if self.players[self.current_players[player]].in_hand)
+		card_results = list(self.evaluator.best_hand(self.community_cards + self.players[self.current_players[player]].cards) for player in range(len(self.current_players)))
 		
 		# changing hands into single value hands
 		# picked 50 since it's larger than any card value or card hand value
@@ -124,12 +124,14 @@ class GameState(object):
 				player_in_focus = self.all_in[0]
 				better_hands = np.where(single_results[player_in_focus] < single_results)[0]
 				equal_hands = np.where(single_results[player_in_focus] == single_results)[0]
+				better_hands_still_in = list(x for x in better_hands if x in still_in)
+				equal_hands_still_in = list(x for x in equal_hands if x in still_in)
 
-				if better_hands.shape[0] > 0:
+				if any(list(self.players[self.current_players[x]].in_hand for x in better_hands)):
 					self.pot[1] += self.pot[0]
 				else:
 					for player in equal_hands:
-						payouts[player] += self.pot[0] / equal_hands.shape[0]
+						payouts[self.current_players[player]] += self.pot[0] / len(equal_hands_still_in)
 
 				self.pot = self.pot[1:]
 				self.all_in = self.all_in[1:]
@@ -138,13 +140,15 @@ class GameState(object):
 				player_in_focus = still_in[0]
 				better_hands = np.where(single_results[player_in_focus] < single_results)[0]
 				equal_hands = np.where(single_results[player_in_focus] == single_results)[0]
+				better_hands_still_in = list(x for x in better_hands if x in still_in)
+				equal_hands_still_in = list(x for x in equal_hands if x in still_in)
 
-				if better_hands.shape[0] == 0:
-					for player in equal_hands:
-						payouts[player] += self.pot[0] / equal_hands.shape[0]
+				if len(better_hands_still_in) == 0:
+					for player in equal_hands_still_in:
+						payouts[self.current_players[player]] += self.pot[0] / len(equal_hands_still_in)
+					self.pot = self.pot[1:]
 
 				still_in.remove(player_in_focus)
-				self.pot = self.pot[1:]
 
 		# distributing payouts
 		for player in range(len(self.current_players)):
