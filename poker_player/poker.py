@@ -14,17 +14,15 @@ class GameState(object):
 		self.blinds = blinds
 		self.ante = ante
 		self.cards = Cards()
-		self.community_cards = list()
 		self.dealer_location = random.choice(range(players))
 		self.evaluator = Evaluator()
-		self.pot = list()
-		self.all_in = list()
-		self.current_players = self._play_order()
 
 		if players < 2:
 			raise NotEnoughPlayersError
 		else:
 			self.players = {x: AutomatedPlayers(starting_amount) for x in range(players)}
+
+		self._reset_game()
 
 	def __str__(self):
 		return "game with %i remaining players" % self._check_remaining_players()
@@ -47,38 +45,67 @@ class GameState(object):
 		else:
 			return bet, allin_player, est_min_call, est_min_raise
 
+	def _find_next_dealer(self):
+		self.dealer_location = (self.dealer_location + 1) % len(self.players.keys())
+
+		while self.players[self.dealer_location].is_alive == False:
+			self.dealer_location = (self.dealer_location + 1) % len(self.players.keys())
+
+	def _reset_game(self):
+		# resetting game
+		self.cards.shuffle()
+		self.pot = list()
+		self.all_in = list()
+		self.community_cards = list()
+		self._find_next_dealer()
+		self.current_players = self._play_order()
+
 	def post_betting(self):
+		# getting hands and ranking them
 		still_in = list(self.current_players[player] for player in range(len(self.current_players)) if self.players[self.current_players[player]].in_hand)
 		card_results = list(self.evaluator.best_hand(self.community_cards + self.players[player].cards) for player in still_in)
+		
+		# changing hands into single value hands
+		# picked 50 since it's larger than any card value or card hand value
 		card_list = {self.cards.card_values[x] : x for x in range(len(self.cards.card_values))}
 		organized_results = np.array(list([x[1]] + list(card_list[y.card_value] for y in x[0]) for x in card_results))
-		single_results = sum(organized_results.T[i] * 50**(organized_results.T.shape[0] - i) for i in range(organized_results.T.shape[0]))
+		single_results = sum(organized_results.T[i] * (50 ** (organized_results.T.shape[0] - i)) for i in range(organized_results.T.shape[0]))
+		
+		# setting up payouts
 		payouts = [0] * len(self.current_players)
 
 		while sum(self.pot) > 0:
-			player_ranking = np.flip(rankdata(single_results).argsort(), 0)
-			counter = 0
+			if len(self.all_in) > 0:
+				player_in_focus = self.all_in[0]
+				better_hands = np.where(single_results[player_in_focus] < single_results)[0]
+				equal_hands = np.where(single_results[player_in_focus] == single_results)[0]
 
-			while single_results[player_ranking[counter]] == single_results[player_ranking[counter + 1]]:
-				counter += 1
+				if better_hands.shape[0] > 0:
+					self.pot[1] += self.pot[0]
+				else:
+					for player in equal_hands:
+						payouts[player] += self.pot[0] / equal_hands.shape[0]
 
-			if any(list(player_ranking[x] in self.all_in for x in range(counter + 1))):
-				return None
+				self.pot = self.pot[1:]
+				self.all_in = self.all_in[1:]
+				still_in.remove(player_in_focus)
 			else:
+				player_in_focus = still_in[0]
+				better_hands = np.where(single_results[player_in_focus] < single_results)[0]
+				equal_hands = np.where(single_results[player_in_focus] == single_results)[0]
 
+				if better_hands.shape[0] == 0:
+					for player in equal_hands:
+						payouts[player] += self.pot[0] / equal_hands.shape[0]
 
+				still_in.remove(player_in_focus)
+				self.pot = self.pot[1:]
 
+		# distributing payouts
+		for player in range(len(self.current_players)):
+			self.players[self.current_players[player]].reset(payouts[self.current_players[player]])
 
-
-		for contenders in still_in:
-
-
-
-		for player in self._check_remaining_players():
-			if player in player_seat:
-				self.players[player].reset(amount)
-			else:
-				self.players[player].reset(0)
+		self._reset_game()
 
 	def preflop(self):
 		dealt_cards = self.cards.deal_preflop(len(self.current_players))
