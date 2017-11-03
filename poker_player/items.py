@@ -48,7 +48,7 @@ class Cards(object):
 		return {x: [cards_dealt[x], cards_dealt[x + players]] for x in range(players)}
 
 	def deal_postflop(self, num_cards):
-		cards_dealt = [next(self) for x in range(num_cards)]
+		cards_dealt = [next(self) for x in range(num_cards + 1)]
 		return cards_dealt[1:]
 
 class Players(object):
@@ -73,7 +73,7 @@ class Players(object):
 		elif amount > min(max_raise, self.holdings):
 			raise BetTooLargeError
 		else:
-			if (amount > 0) & (amount < min_bet) :
+			if amount < min_bet :
 				raise BetTooSmallError
 			elif (amount > min_bet) & (amount < min_raise):
 				raise BetTooSmallError
@@ -109,9 +109,13 @@ class AutomatedPlayers(Players):
 
 	def best_action(self, pot, community_cards, min_bet, min_raise, max_raise):
 		if random.random() > self.probs:
-			self.bet(min_bet, min_bet, min_raise, max_raise)
+			return super(AutomatedPlayers, self).bet(min_bet, min_bet, min_raise, max_raise)
+		elif random.random() > self.probs:
+			return super(AutomatedPlayers, self).bet(min_raise, min_bet, min_raise, max_raise)
+		elif min_bet == 0:
+			return super(AutomatedPlayers, self).bet(min_bet, min_bet, min_raise, max_raise)
 		else:
-			self.fold()
+			return super(AutomatedPlayers, self).fold()
 
 
 
