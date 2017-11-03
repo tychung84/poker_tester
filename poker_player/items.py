@@ -3,7 +3,6 @@ from error import BetTooSmallError, BetTooLargeError
 from hand_eval import PlayerEvaluator
 
 class Card(object):
-	
 	'''card object
 	'''
 
@@ -15,7 +14,6 @@ class Card(object):
 		return self.card_value + self.suit
 
 class Cards(object):
-	
 	'''deals with the mechanics of how the cards are dealt
 	'''
 
@@ -116,12 +114,3 @@ class AutomatedPlayers(Players):
 			return super(AutomatedPlayers, self).bet(min_bet, min_bet, min_raise, max_raise)
 		else:
 			return super(AutomatedPlayers, self).fold()
-
-
-
-
-
-
-
-
-

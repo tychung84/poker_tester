@@ -1,4 +1,3 @@
-
 class HAND_VALUES(object):
 	STRAIGHT_FLUSH = 8
 	QUADS = 7
