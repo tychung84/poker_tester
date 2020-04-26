@@ -1,10 +1,11 @@
 import numpy as np
 import random
 
-from error import NotEnoughPlayersError
-from items import Cards, AutomatedPlayers
-from hand_eval import Evaluator
 from scipy.stats import rankdata
+
+from .error import NotEnoughPlayersError
+from .cards import Dealer
+from .hands import Evaluator
 
 class GameState(object):
 	"""State of individual poker match
@@ -13,7 +14,7 @@ class GameState(object):
 	def __init__(self, blinds=(1, 2), starting_amount=100, players=2, ante=0):
 		self.blinds = blinds
 		self.ante = ante
-		self.cards = Cards()
+		self.cards = Dealer()
 		self.dealer_location = random.choice(range(players))
 		self.evaluator = Evaluator()
 
@@ -41,7 +42,7 @@ class GameState(object):
 	def _find_next_dealer(self):
 		self.dealer_location = (self.dealer_location + 1) % len(self.players.keys())
 
-		while self.players[self.dealer_location].alive == False:
+		while not self.players[self.dealer_location].alive:
 			self.dealer_location = (self.dealer_location + 1) % len(self.players.keys())
 
 	def _reset_game(self):
@@ -63,7 +64,7 @@ class GameState(object):
 		while (all(list(betting[x] == max(betting) for x in range(len(self.current_players)) if (allin_checker[x] == False) & self.players[self.current_players[x]].in_hand)) == False) | (countdown > 0):
 			if self._still_in() <= 1:
 				break 			
-			elif (self.players[self.current_players[current_turn]].in_hand) & (allin_checker[current_turn] == False):
+			elif self.players[self.current_players[current_turn]].in_hand & (allin_checker[current_turn] == False):
 				this_bet, allin_checker[current_turn] = self._return_bet_consequences(
 						self.players[self.current_players[current_turn]],
 						sum(self.pot),
@@ -171,7 +172,7 @@ class GameState(object):
 		# small / big blind
 		checker = False
 		for player in self.current_players[:2]:
-			if allin_checker[player] == False:
+			if not allin_checker[player]:
 				betting[player], allin_checker[player] = self.players[self.current_players[player]].bet(self.blinds[checker], self.blinds[checker], min_raise, max_raise - betting[player])
 				checker = True
 			else:
